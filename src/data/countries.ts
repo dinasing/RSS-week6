@@ -1,4 +1,5 @@
 export const COUNTRIES = [
+  'Belarus',
   'Afghanistan',
   'Albania',
   'Algeria',
