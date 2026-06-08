@@ -16,6 +16,106 @@
   @apply text-sm text-orange-600;
 }
 
+.password-strength {
+  @apply mt-2 flex flex-col gap-1 text-sm;
+}
+
+.password-strength-met {
+  @apply text-green-700;
+}
+
+.password-strength-unmet {
+  @apply text-slate-500;
+}
+
+.country-autocomplete {
+  @apply relative w-full;
+}
+
+.country-autocomplete .form-input {
+  @apply w-full;
+}
+
+.country-autocomplete-list {
+  @apply absolute z-10 mt-1 max-h-48 w-full overflow-auto rounded border border-slate-300 bg-white shadow;
+}
+
+.country-autocomplete-option {
+  @apply block w-full px-3 py-2 text-left hover:bg-pink-50;
+}
+
+.submission-card {
+  @apply flex gap-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm transition-colors duration-300;
+}
+
+.submission-card-highlight {
+  @apply border-pink-400 bg-pink-50;
+}
+
+.submission-card-image {
+  @apply h-24 w-24 shrink-0 rounded object-cover;
+}
+
+.submission-card-content {
+  @apply flex min-w-0 flex-1 flex-col gap-3;
+}
+
+.submission-card-header {
+  @apply flex items-center justify-between gap-2;
+}
+
+.submission-card-header h3 {
+  @apply text-lg font-semibold text-slate-900;
+}
+
+.submission-card-badge {
+  @apply rounded-full bg-pink-100 px-2 py-1 text-xs font-medium uppercase text-pink-700;
+}
+
+.submission-card-details {
+  @apply grid grid-cols-2 gap-2 text-sm;
+}
+
+.submission-card-details dt {
+  @apply font-medium text-slate-500;
+}
+
+.submission-card-details dd {
+  @apply text-slate-900;
+}
+
+.app {
+  @apply mx-auto max-w-6xl p-6;
+}
+
+.app-header {
+  @apply mb-8 flex flex-col gap-3;
+}
+
+.app-header h1 {
+  @apply text-3xl font-bold text-slate-900;
+}
+
+.app-actions {
+  @apply flex flex-wrap gap-3;
+}
+
+.submissions-section {
+  @apply flex flex-col gap-4;
+}
+
+.submissions-section h2 {
+  @apply text-2xl font-semibold text-slate-900;
+}
+
+.submissions-empty {
+  @apply text-slate-500;
+}
+
+.submissions-grid {
+  @apply grid gap-4 md:grid-cols-2;
+}
+
 .form-label {
   @apply flex items-center gap-2;
 }
