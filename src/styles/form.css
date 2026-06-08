@@ -1,4 +1,4 @@
-@reference '../../index.css';
+@import 'tailwindcss' reference;
 
 .form {
   @apply flex flex-col gap-4;
