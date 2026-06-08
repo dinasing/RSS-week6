@@ -93,7 +93,7 @@ function Modal({ isOpen, onClose, title, children }: ModalProps) {
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="fixed top-1/4 left-1/2 z-50 flex max-h-[90vh] w-full max-w-lg -translate-x-1/2 -translate-y-1/2 flex-col gap-4 overflow-auto rounded-lg bg-white p-4"
+        className="fixed top-1/2 left-1/2 z-50 flex max-h-[90vh] w-full max-w-lg -translate-x-1/2 -translate-y-1/2 flex-col gap-4 overflow-auto rounded-lg bg-white p-4"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex w-full flex-row justify-between gap-4">
@@ -104,7 +104,7 @@ function Modal({ isOpen, onClose, title, children }: ModalProps) {
       </div>
       {renderShadow()}
     </>,
-    document.body,
+    document.body
   );
 }
 

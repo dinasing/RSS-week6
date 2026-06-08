@@ -1,22 +1,14 @@
-import { useState } from 'react';
-import Modal from './components/Modal/Modal';
-function App() {
-  const [isOpen, setIsOpen] = useState(false);
-  return (
-    <>
-      <h1>Form validation with react-hook-form and zod</h1>
+import ModalContainer from './components/Modal/ModalContainer';
 
-      <Modal
-        title="Modal Title"
-        onClose={() => {
-          setIsOpen(false);
-        }}
-        isOpen={isOpen}
-      >
-        Modal Content
-      </Modal>
-      <button onClick={() => setIsOpen(true)}>Open Modal</button>
-    </>
+function App() {
+  return (
+    <div className="m-4 p-4">
+      <h1 className="text-2xl my-4">
+        Form validation with react-hook-form and zod
+      </h1>
+      <ModalContainer />
+      <section>TO DO: filled forms</section>
+    </div>
   );
 }
 
