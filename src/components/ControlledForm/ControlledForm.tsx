@@ -1,80 +1,83 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
-import { z } from 'zod';
+import { useMemo } from 'react';
+import { Controller, useForm } from 'react-hook-form';
 
-const GENDER_OPTIONS = ['female', 'male'] as const;
+import {
+  createFormSchema,
+  GENDER_OPTIONS,
+  type FormInput,
+  type FormValues,
+} from '../../schemas/formSchema';
+import { useFormStore } from '../../store/useFormStore';
+import { imageToBase64 } from '../../utils/imageToBase64';
+import CountryAutocomplete from '../CountryAutocomplete/CountryAutocomplete';
+import FormField from '../FormField/FormField';
+import PasswordStrength from '../PasswordStrength/PasswordStrength';
 
-const formSchema = z.object({
-  fullName: z.string().trim().min(3, 'Full name is required'),
-  age: z
-    .string()
-    .min(1, 'Age is required')
-    .refine((value) => !Number.isNaN(Number(value)), {
-      message: 'Age must be a number',
-    })
-    .transform((value) => Number(value))
-    .pipe(
-      z
-        .number()
-        .int('Age must be a whole number')
-        .min(1, 'Age must be at least 1')
-        .max(120, 'Age must be at most 120')
-    ),
-  email: z.email('Invalid email address'),
-  gender: z.enum(GENDER_OPTIONS, { message: 'Please select a gender' }),
-  acceptTerms: z.boolean().refine((value) => value, {
-    message: 'You must accept the terms and conditions',
-  }),
-});
+interface ControlledFormProps {
+  onSuccess: (submissionId: string) => void;
+}
 
-type FormInput = z.input<typeof formSchema>;
-type FormOutput = z.output<typeof formSchema>;
+function ControlledForm({ onSuccess }: ControlledFormProps) {
+  const countries = useFormStore((state) => state.countries);
+  const addSubmission = useFormStore((state) => state.addSubmission);
+  const schema = useMemo(() => createFormSchema(countries), [countries]);
 
-const defaultValues: FormInput = {
-  fullName: '',
-  age: '1',
-  email: '',
-  gender: 'female',
-  acceptTerms: false,
-};
-
-function ControlledForm() {
   const {
     register,
+    control,
     handleSubmit,
-    formState: { errors, isValid },
-  } = useForm<FormInput, unknown, FormOutput>({
-    resolver: zodResolver(formSchema),
-    defaultValues,
+    watch,
+    reset,
+    formState: { errors, isValid, isSubmitting },
+  } = useForm<FormInput, unknown, FormValues>({
+    resolver: zodResolver(schema),
     mode: 'onChange',
+    defaultValues: {
+      name: '',
+      age: '',
+      email: '',
+      gender: undefined,
+      acceptTerms: false,
+      password: '',
+      confirmPassword: '',
+      country: '',
+      image: undefined,
+    },
   });
 
-  const onSubmit = (data: FormOutput) => {
-    console.log(data);
+  const passwordValue = watch('password') ?? '';
+
+  const onSubmit = async (data: FormValues) => {
+    const imageBase64 = await imageToBase64(data.image);
+    const submissionId = addSubmission({
+      source: 'rhf',
+      name: data.name,
+      age: data.age,
+      email: data.email,
+      gender: data.gender,
+      country: data.country,
+      imageBase64,
+    });
+
+    reset();
+    onSuccess(submissionId);
   };
 
   return (
     <form className="form" onSubmit={handleSubmit(onSubmit)} noValidate>
-      <div className="form-field">
-        <label htmlFor="fullName">Full Name</label>
+      <FormField label="Name" htmlFor="name" error={errors.name?.message}>
         <input
-          id="fullName"
+          id="name"
           type="text"
           autoComplete="name"
-          aria-invalid={Boolean(errors.fullName)}
-          aria-describedby={errors.fullName ? 'fullName-error' : undefined}
+          aria-invalid={Boolean(errors.name)}
           className="form-input"
-          {...register('fullName')}
+          {...register('name')}
         />
-        {errors.fullName && (
-          <p id="fullName-error" className="form-error" role="alert">
-            {errors.fullName.message}
-          </p>
-        )}
-      </div>
+      </FormField>
 
-      <div className="form-field">
-        <label htmlFor="age">Age</label>
+      <FormField label="Age" htmlFor="age" error={errors.age?.message}>
         <input
           id="age"
           type="number"
@@ -82,79 +85,139 @@ function ControlledForm() {
           min={1}
           max={120}
           aria-invalid={Boolean(errors.age)}
-          aria-describedby={errors.age ? 'age-error' : undefined}
           className="form-input"
           {...register('age')}
         />
-        {errors.age && (
-          <p id="age-error" className="form-error" role="alert">
-            {errors.age.message}
-          </p>
-        )}
-      </div>
+      </FormField>
 
-      <div className="form-field">
-        <label htmlFor="email">Email</label>
+      <FormField label="Email" htmlFor="email" error={errors.email?.message}>
         <input
           id="email"
           type="email"
           autoComplete="email"
           aria-invalid={Boolean(errors.email)}
-          aria-describedby={errors.email ? 'email-error' : undefined}
           className="form-input"
           {...register('email')}
         />
-        {errors.email && (
-          <p id="email-error" className="form-error" role="alert">
-            {errors.email.message}
-          </p>
-        )}
-      </div>
+      </FormField>
 
-      <div className="form-field">
-        <label htmlFor="gender">Gender</label>
+      <FormField label="Gender" htmlFor="gender" error={errors.gender?.message}>
         <select
           id="gender"
           aria-invalid={Boolean(errors.gender)}
-          aria-describedby={errors.gender ? 'gender-error' : undefined}
           className="form-input"
           {...register('gender')}
         >
+          <option value="" disabled>
+            Select gender
+          </option>
           {GENDER_OPTIONS.map((option) => (
             <option key={option} value={option}>
               {option.charAt(0).toUpperCase() + option.slice(1)}
             </option>
           ))}
         </select>
-        {errors.gender && (
-          <p id="gender-error" className="form-error" role="alert">
-            {errors.gender.message}
-          </p>
-        )}
-      </div>
+      </FormField>
 
-      <div className="form-field">
+      <FormField
+        label="Country"
+        htmlFor="country"
+        error={errors.country?.message}
+      >
+        <Controller
+          name="country"
+          control={control}
+          render={({ field }) => (
+            <CountryAutocomplete
+              id="country"
+              value={field.value}
+              countries={countries}
+              error={errors.country?.message}
+              onChange={field.onChange}
+              onBlur={field.onBlur}
+            />
+          )}
+        />
+      </FormField>
+
+      <FormField
+        label="Profile Image"
+        htmlFor="image"
+        error={errors.image?.message}
+      >
+        <Controller
+          name="image"
+          control={control}
+          render={({ field: { onChange, ref } }) => (
+            <input
+              id="image"
+              ref={ref}
+              type="file"
+              accept="image/png,image/jpeg"
+              aria-invalid={Boolean(errors.image)}
+              className="form-input"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                onChange(file);
+              }}
+            />
+          )}
+        />
+      </FormField>
+
+      <FormField
+        label="Password"
+        htmlFor="password"
+        error={errors.password?.message}
+      >
+        <input
+          id="password"
+          type="password"
+          autoComplete="new-password"
+          aria-invalid={Boolean(errors.password)}
+          className="form-input"
+          {...register('password')}
+        />
+        <PasswordStrength password={passwordValue} />
+      </FormField>
+
+      <FormField
+        label="Confirm Password"
+        htmlFor="confirmPassword"
+        error={errors.confirmPassword?.message}
+      >
+        <input
+          id="confirmPassword"
+          type="password"
+          autoComplete="new-password"
+          aria-invalid={Boolean(errors.confirmPassword)}
+          className="form-input"
+          {...register('confirmPassword')}
+        />
+      </FormField>
+
+      <FormField
+        label="Terms and Conditions"
+        htmlFor="acceptTerms"
+        error={errors.acceptTerms?.message}
+      >
         <label className="form-label">
           <input
             id="acceptTerms"
             type="checkbox"
             className="form-checkbox"
             aria-invalid={Boolean(errors.acceptTerms)}
-            aria-describedby={
-              errors.acceptTerms ? 'acceptTerms-error' : undefined
-            }
             {...register('acceptTerms')}
           />
-          Accept Terms and Conditions
+          I accept the Terms and Conditions
         </label>
-        {errors.acceptTerms && (
-          <p id="acceptTerms-error" className="form-error" role="alert">
-            {errors.acceptTerms.message}
-          </p>
-        )}
-      </div>
+      </FormField>
 
-      <button type="submit" className="button" disabled={!isValid}>
+      <button
+        type="submit"
+        className="button"
+        disabled={!isValid || isSubmitting}
+      >
         Submit
       </button>
     </form>

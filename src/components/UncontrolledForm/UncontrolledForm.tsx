@@ -1,126 +1,108 @@
-import { useId, useState } from 'react';
-import { z } from 'zod';
+import { useId, useRef, useState } from 'react';
 
-const GENDER_OPTIONS = ['female', 'male'] as const;
+import CountryAutocomplete from '../CountryAutocomplete/CountryAutocomplete';
+import FormField from '../FormField/FormField';
+import PasswordStrength from '../PasswordStrength/PasswordStrength';
+import {
+  createFormSchema,
+  getFieldErrors,
+  GENDER_OPTIONS,
+} from '../../schemas/formSchema';
+import { useFormStore } from '../../store/useFormStore';
+import { imageToBase64 } from '../../utils/imageToBase64';
 
-const formSchema = z.object({
-  fullName: z.string().trim().min(3, 'Full name is required'),
-  age: z
-    .string()
-    .min(1, 'Age is required')
-    .refine((value) => !Number.isNaN(Number(value)), {
-      message: 'Age must be a number',
-    })
-    .transform((value) => Number(value))
-    .pipe(
-      z
-        .number()
-        .int('Age must be a whole number')
-        .min(1, 'Age must be at least 1')
-        .max(120, 'Age must be at most 120'),
-    ),
-  email: z.email('Invalid email address'),
-  gender: z.enum(GENDER_OPTIONS, { message: 'Please select a gender' }),
-  acceptTerms: z.boolean().refine((value) => value, {
-    message: 'You must accept the terms and conditions',
-  }),
-});
-
-type FormInput = z.input<typeof formSchema>;
-type FieldName = keyof FormInput;
-type FieldErrors = Partial<Record<FieldName, string>>;
-
-function getFieldErrors(error: z.ZodError): FieldErrors {
-  const fieldErrors: FieldErrors = {};
-
-  for (const issue of error.issues) {
-    const field = issue.path[0];
-
-    if (typeof field === 'string' && !fieldErrors[field as FieldName]) {
-      fieldErrors[field as FieldName] = issue.message;
-    }
-  }
-
-  return fieldErrors;
+interface UncontrolledFormProps {
+  onSuccess: (submissionId: string) => void;
 }
 
-export default function UncontrolledForm() {
+export default function UncontrolledForm({ onSuccess }: UncontrolledFormProps) {
   const formId = useId();
-  const [errors, setErrors] = useState<FieldErrors>({});
+  const formRef = useRef<HTMLFormElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const countries = useFormStore((state) => state.countries);
+  const addSubmission = useFormStore((state) => state.addSubmission);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [country, setCountry] = useState('');
+  const [password, setPassword] = useState('');
 
   const fieldId = (name: string) => `${formId}-${name}`;
 
-  const handleSubmit = (event: React.SubmitEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     const formData = new FormData(event.currentTarget);
-    const result = formSchema.safeParse({
-      fullName: formData.get('fullName'),
+    const image = imageInputRef.current?.files?.[0];
+
+    const payload = {
+      name: formData.get('name'),
       age: formData.get('age'),
       email: formData.get('email'),
       gender: formData.get('gender'),
       acceptTerms: formData.get('acceptTerms') === 'on',
-    });
+      password: formData.get('password'),
+      confirmPassword: formData.get('confirmPassword'),
+      image,
+      country,
+    };
+
+    const result = createFormSchema(countries).safeParse(payload);
 
     if (!result.success) {
       setErrors(getFieldErrors(result.error));
       return;
     }
 
+    const imageBase64 = await imageToBase64(result.data.image);
+    const submissionId = addSubmission({
+      source: 'uncontrolled',
+      name: result.data.name,
+      age: result.data.age,
+      email: result.data.email,
+      gender: result.data.gender,
+      country: result.data.country,
+      imageBase64,
+    });
+
     setErrors({});
-    console.log(result.data);
+    setCountry('');
+    setPassword('');
+    formRef.current?.reset();
+    onSuccess(submissionId);
   };
 
   return (
-    <form className="form" onSubmit={handleSubmit} noValidate>
-      <div className="form-field">
-        <label htmlFor={fieldId('fullName')}>Full Name</label>
+    <form
+      ref={formRef}
+      className="form"
+      onSubmit={handleSubmit}
+      noValidate
+    >
+      <FormField label="Name" htmlFor={fieldId('name')} error={errors.name}>
         <input
-          id={fieldId('fullName')}
-          name="fullName"
+          id={fieldId('name')}
+          name="name"
           type="text"
           autoComplete="name"
           defaultValue=""
-          aria-invalid={Boolean(errors.fullName)}
-          aria-describedby={
-            errors.fullName ? fieldId('fullName-error') : undefined
-          }
+          aria-invalid={Boolean(errors.name)}
           className="form-input"
         />
-        {errors.fullName && (
-          <p
-            id={fieldId('fullName-error')}
-            className="form-error"
-            role="alert"
-          >
-            {errors.fullName}
-          </p>
-        )}
-      </div>
+      </FormField>
 
-      <div className="form-field">
-        <label htmlFor={fieldId('age')}>Age</label>
+      <FormField label="Age" htmlFor={fieldId('age')} error={errors.age}>
         <input
           id={fieldId('age')}
           name="age"
           type="number"
           inputMode="numeric"
-          min={1}
-          max={120}
-          defaultValue="1"
+          min={0}
+          defaultValue=""
           aria-invalid={Boolean(errors.age)}
-          aria-describedby={errors.age ? fieldId('age-error') : undefined}
           className="form-input"
         />
-        {errors.age && (
-          <p id={fieldId('age-error')} className="form-error" role="alert">
-            {errors.age}
-          </p>
-        )}
-      </div>
+      </FormField>
 
-      <div className="form-field">
-        <label htmlFor={fieldId('email')}>Email</label>
+      <FormField label="Email" htmlFor={fieldId('email')} error={errors.email}>
         <input
           id={fieldId('email')}
           name="email"
@@ -128,64 +110,113 @@ export default function UncontrolledForm() {
           autoComplete="email"
           defaultValue=""
           aria-invalid={Boolean(errors.email)}
-          aria-describedby={errors.email ? fieldId('email-error') : undefined}
           className="form-input"
         />
-        {errors.email && (
-          <p id={fieldId('email-error')} className="form-error" role="alert">
-            {errors.email}
-          </p>
-        )}
-      </div>
+      </FormField>
 
-      <div className="form-field">
-        <label htmlFor={fieldId('gender')}>Gender</label>
+      <FormField
+        label="Gender"
+        htmlFor={fieldId('gender')}
+        error={errors.gender}
+      >
         <select
           id={fieldId('gender')}
           name="gender"
-          defaultValue="female"
+          defaultValue=""
           aria-invalid={Boolean(errors.gender)}
-          aria-describedby={errors.gender ? fieldId('gender-error') : undefined}
           className="form-input"
         >
+          <option value="" disabled>
+            Select gender
+          </option>
           {GENDER_OPTIONS.map((option) => (
             <option key={option} value={option}>
               {option.charAt(0).toUpperCase() + option.slice(1)}
             </option>
           ))}
         </select>
-        {errors.gender && (
-          <p id={fieldId('gender-error')} className="form-error" role="alert">
-            {errors.gender}
-          </p>
-        )}
-      </div>
+      </FormField>
 
-      <div className="form-field">
+      <FormField
+        label="Country"
+        htmlFor={fieldId('country')}
+        error={errors.country}
+      >
+        <CountryAutocomplete
+          id={fieldId('country')}
+          value={country}
+          countries={countries}
+          error={errors.country}
+          onChange={setCountry}
+        />
+      </FormField>
+
+      <FormField
+        label="Profile Image"
+        htmlFor={fieldId('image')}
+        error={errors.image}
+      >
+        <input
+          id={fieldId('image')}
+          ref={imageInputRef}
+          name="image"
+          type="file"
+          accept="image/png,image/jpeg"
+          aria-invalid={Boolean(errors.image)}
+          className="form-input"
+        />
+      </FormField>
+
+      <FormField
+        label="Password"
+        htmlFor={fieldId('password')}
+        error={errors.password}
+      >
+        <input
+          id={fieldId('password')}
+          name="password"
+          type="password"
+          autoComplete="new-password"
+          defaultValue=""
+          aria-invalid={Boolean(errors.password)}
+          className="form-input"
+          onChange={(event) => setPassword(event.target.value)}
+        />
+        <PasswordStrength password={password} />
+      </FormField>
+
+      <FormField
+        label="Confirm Password"
+        htmlFor={fieldId('confirmPassword')}
+        error={errors.confirmPassword}
+      >
+        <input
+          id={fieldId('confirmPassword')}
+          name="confirmPassword"
+          type="password"
+          autoComplete="new-password"
+          defaultValue=""
+          aria-invalid={Boolean(errors.confirmPassword)}
+          className="form-input"
+        />
+      </FormField>
+
+      <FormField
+        label="Terms and Conditions"
+        htmlFor={fieldId('acceptTerms')}
+        error={errors.acceptTerms}
+      >
         <label className="form-label">
           <input
             id={fieldId('acceptTerms')}
             name="acceptTerms"
             type="checkbox"
             className="form-checkbox"
-            defaultChecked={false}
             aria-invalid={Boolean(errors.acceptTerms)}
-            aria-describedby={
-              errors.acceptTerms ? fieldId('acceptTerms-error') : undefined
-            }
           />
-          Accept Terms and Conditions
+          I accept the Terms and Conditions
         </label>
-        {errors.acceptTerms && (
-          <p
-            id={fieldId('acceptTerms-error')}
-            className="form-error"
-            role="alert"
-          >
-            {errors.acceptTerms}
-          </p>
-        )}
-      </div>
+      </FormField>
 
       <button type="submit" className="button">
         Submit
