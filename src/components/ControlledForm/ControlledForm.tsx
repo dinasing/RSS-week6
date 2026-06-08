@@ -1,7 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import './ControlledForm.css';
 
 const GENDER_OPTIONS = ['female', 'male'] as const;
 

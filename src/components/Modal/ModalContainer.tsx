@@ -2,11 +2,13 @@ import { useState } from 'react';
 
 import ControlledForm from '../ControlledForm/ControlledForm';
 import UncontrolledForm from '../UncontrolledForm/UncontrolledForm';
-import Modal from './/Modal';
+import Modal from './Modal';
 
 export default function ModalContainer() {
   const [isOpen, setIsOpen] = useState(false);
-  const [activeForm, setActiveForm] = useState('');
+  const [activeForm, setActiveForm] = useState<'controlled' | 'uncontrolled'>(
+    'controlled'
+  );
 
   return (
     <div>
@@ -21,12 +23,21 @@ export default function ModalContainer() {
           <button
             type="button"
             className="button"
-            onClick={() => setIsOpen(true)}
+            onClick={() =>
+              setActiveForm((current) =>
+                current === 'controlled' ? 'uncontrolled' : 'controlled'
+              )
+            }
           >
-            Open Controlled Form
+            {activeForm === 'controlled'
+              ? 'Switch to Uncontrolled Form'
+              : 'Switch to Controlled Form'}
           </button>
-          <ControlledForm />
-          <UncontrolledForm />
+          {activeForm === 'controlled' ? (
+            <ControlledForm />
+          ) : (
+            <UncontrolledForm />
+          )}
         </Modal>
         <button
           type="button"
