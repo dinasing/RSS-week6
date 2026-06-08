@@ -41,6 +41,14 @@ describe('createFormSchema', () => {
     expect(result.success).toBe(false);
   });
 
+  it('requires name to start with uppercase letter', () => {
+    const result = schema.safeParse({
+      ...createValidPayload(),
+      name: 'john',
+    });
+    expect(result.success).toBe(false);
+  });
+
   it('rejects invalid email addresses', () => {
     const result = schema.safeParse({
       ...createValidPayload(),

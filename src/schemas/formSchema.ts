@@ -8,6 +8,14 @@ export const ALLOWED_IMAGE_MIME_TYPES = ['image/png', 'image/jpeg'] as const;
 
 const GENDER_OPTIONS = ['male', 'female', 'other'] as const;
 
+function isUppercaseLetter(char: string): boolean {
+  return (
+    char.length === 1 &&
+    char === char.toUpperCase() &&
+    char !== char.toLowerCase()
+  );
+}
+
 function getFileExtension(fileName: string): string {
   const parts = fileName.split('.');
 
@@ -42,7 +50,13 @@ export function createFormSchema(countries: readonly string[]) {
 
   return z
     .object({
-      name: z.string().trim().min(1, 'Name is required'),
+      name: z
+        .string()
+        .trim()
+        .min(1, 'Name is required')
+        .refine((value) => isUppercaseLetter(value.charAt(0)), {
+          message: 'Name must start with an uppercase letter',
+        }),
       age: z
         .union([z.string(), z.number()])
         .transform((value) =>
