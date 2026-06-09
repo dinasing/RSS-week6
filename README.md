@@ -1,1 +1,1 @@
-# RSS-week6
+# React + TypeScript + Vite
